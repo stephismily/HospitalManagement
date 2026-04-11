@@ -9,4 +9,4 @@ const slotSchema = new mongoose.Schema({
   // Add other fields as needed
 }, { timestamps: true });
 
-module.exports = mongoose.model('Slot', slotSchema);
+module.exports = mongoose.models.Slot || mongoose.model('Slot', slotSchema);

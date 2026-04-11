@@ -20,4 +20,16 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// ...existing code...
+
+// GET /api/patients/me/appointments
+exports.getMyAppointments = async (req, res, next) => {
+  try {
+    const appointments = await require('../models/Appointment').find({ patientId: req.user.id });
+    res.json({ data: appointments });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = { getProfile, updateProfile };
