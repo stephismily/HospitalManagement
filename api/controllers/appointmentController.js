@@ -10,20 +10,9 @@ exports.bookAppointment = async (req, res, next) => {
     if (!doctorId || !slotId) return res.status(400).json({ error: 'doctorId and slotId are required' });
 
     const slot = await Slot.findById(slotId);
-    if (!slot) return res.status(404).json({ error: 'Slot not found' });
-    if (!slot.isAvailable) return res.status(400).json({ error: 'Slot already booked' });
-
-    // Optional: check patient conflict
-    // if (await checkPatientConflict(patientId, slot.date, slot.time)) {
-    //   return res.status(400).json({ error: 'You already have an appointment at this time' });
-    // }
-
-    const appointment = await Appointment.create({
-      doctorId,
-      patientId,
-      slotId,
-      status: 'booked'
-    });
+    if (!slot.isAvailable) return res.status(400).json({ message: 'Slot not available' });
+    const appointment = new Appointment({ patient: req.user.id, doctor: slot.doctor, slot: slotId });
+    await appointment.save();
     slot.isAvailable = false;
     await slot.save();
     return res.status(201).json({ data: appointment });
@@ -53,18 +42,11 @@ exports.getAppointmentById = async (req, res, next) => {
 // PUT /api/appointments/:id/cancel
 exports.cancelAppointment = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const appointment = await Appointment.findById(id);
-    if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
-    if (
-      req.user.id !== appointment.patientId.toString() &&
-      req.user.id !== appointment.doctorId.toString()
-    ) {
-      return res.status(403).json({ error: 'Unauthorized access' });
-    }
-    if (appointment.status !== 'booked') {
-      return res.status(400).json({ error: 'Only booked appointments can be cancelled' });
-    }
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    const slot = await Slot.findById(appointment.slot);
+    slot.isAvailable = true;
+    await slot.save();
     appointment.status = 'cancelled';
     if (req.body.cancelReason) appointment.cancelReason = req.body.cancelReason;
     await appointment.save();

@@ -13,6 +13,9 @@ app.use('/api/patients', patientRoutes);
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from frontend directory
+app.use(express.static('frontend'));
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
@@ -22,18 +25,8 @@ mongoose.connect(process.env.MONGO_URI, {
 }).catch(err => console.log(err));
 
 // Routes
-const authRoutes = require('./src/routes/authRoutes');
-const slotRoutes = require('./src/routes/slotRoutes');
-app.use('/api/auth', authRoutes);
-app.use('/api/slots', slotRoutes);
-// Add other routes here (doctors, patients, appointments)
-
-const appointmentRoutes = require('./api/routes/appointmentRoutes');
-app.use('/api/appointments', appointmentRoutes);
-
-// Global error handler
-const errorHandler = require('./src/middleware/errorHandler');
-app.use(errorHandler);
+// app.use('/api/auth', require('./api/routes/authRoutes'));
+// Add other routes here
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
