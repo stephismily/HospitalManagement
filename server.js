@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -16,14 +15,9 @@ const slotRoutes = require('./api/routes/slotRoutes');
 const appointmentRoutes = require('./api/routes/appointmentRoutes');
 const adminRoutes = require('./api/routes/adminRoutes');
 const errorHandler = require('./api/middleware/errorHandler');
+const connectDB = require('./api/config/db');
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  console.log('Connected to MongoDB');
-}).catch(err => console.log(err));
+connectDB();
 
 // Routes
 app.get('/health', (req, res) => res.json({ data: 'ok' }));

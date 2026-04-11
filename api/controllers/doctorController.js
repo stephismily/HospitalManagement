@@ -11,6 +11,20 @@ const listDoctors = async (req, res, next) => {
   }
 };
 
+const getMe = async (req, res, next) => {
+  try {
+    const doctor = await Doctor.findById(req.user.id).select('-password');
+
+    if (!doctor) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+
+    return res.json({ data: doctor });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const updateMe = async (req, res, next) => {
   try {
     const blockedFields = ['password', 'role', 'firstLogin'];
@@ -53,4 +67,4 @@ const getMySlots = async (req, res, next) => {
   }
 };
 
-module.exports = { listDoctors, updateMe, getMyAppointments, getMySlots };
+module.exports = { listDoctors, getMe, updateMe, getMyAppointments, getMySlots };

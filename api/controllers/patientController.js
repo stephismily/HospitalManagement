@@ -1,6 +1,20 @@
 const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
 
+const getMe = async (req, res, next) => {
+  try {
+    const patient = await Patient.findById(req.user.id).select('-password');
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    return res.json({ data: patient });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const updateMe = async (req, res, next) => {
   try {
     const blockedFields = ['password', 'role'];
@@ -34,4 +48,4 @@ const getMyAppointments = async (req, res, next) => {
   }
 };
 
-module.exports = { updateMe, getMyAppointments };
+module.exports = { getMe, updateMe, getMyAppointments };

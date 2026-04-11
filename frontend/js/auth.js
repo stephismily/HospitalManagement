@@ -5,6 +5,7 @@ const showRegister = document.getElementById('showRegister');
 const loginSection = document.getElementById('loginSection');
 const registerSection = document.getElementById('registerSection');
 const authMessage = document.getElementById('authMessage');
+const API_BASE = window.location.port === '5000' ? window.location.origin : 'http://localhost:5000';
 
 const showSection = (section) => {
   if (section === 'login') {
@@ -25,7 +26,7 @@ loginForm.addEventListener('submit', async (e) => {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
 
-  const response = await fetch('http://localhost:3000/api/auth/login', {
+  const response = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
@@ -33,14 +34,20 @@ loginForm.addEventListener('submit', async (e) => {
 
   const data = await response.json();
   if (response.ok) {
-    localStorage.setItem('token', data.token);
-    const decoded = parseJwt(data.token);
-    localStorage.setItem('role', decoded.role);
+    const authData = data.data || data;
+    const token = authData.token;
+    const decoded = parseJwt(token);
+    const role = authData.user?.role || decoded.role;
+    const firstLogin = Boolean(authData.firstLogin || authData.user?.firstLogin || decoded.firstLogin);
+
+    localStorage.setItem('token', token);
+    localStorage.setItem('role', role);
+    localStorage.setItem('firstLogin', String(firstLogin));
     
-    if (decoded.role === 'admin') {
+    if (role === 'admin') {
       window.location.href = 'admin.html';
-    } else if (decoded.role === 'doctor') {
-      if (decoded.firstLogin) {
+    } else if (role === 'doctor') {
+      if (firstLogin) {
         window.location.href = 'changePassword.html';
       } else {
         window.location.href = 'doctor.html';
@@ -49,7 +56,7 @@ loginForm.addEventListener('submit', async (e) => {
       window.location.href = 'patient.html';
     }
   } else {
-    authMessage.innerHTML = `<div class="alert alert-danger">${data.message || 'Login failed'}</div>`;
+    authMessage.innerHTML = `<div class="alert alert-danger">${data.error || data.message || 'Login failed'}</div>`;
   }
 });
 
@@ -64,7 +71,7 @@ registerForm.addEventListener('submit', async (e) => {
 
   const payload = { patientName, contact, email, password, dob, address };
 
-    const response = await fetch('http://localhost:3000/api/auth/register', {
+    const response = await fetch(`${API_BASE}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -72,7 +79,7 @@ registerForm.addEventListener('submit', async (e) => {
 
   const data = await response.json();
   if (response.ok) {
-    authMessage.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+    authMessage.innerHTML = '<div class="alert alert-success">Registration successful. You can now log in.</div>';
     registerForm.reset();
   } else {
     authMessage.innerHTML = `<div class="alert alert-danger">${data.error || 'Registration failed'}</div>`;

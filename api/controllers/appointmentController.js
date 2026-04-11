@@ -7,11 +7,22 @@ const idToString = (value) => {
   return (value._id || value).toString();
 };
 
+const toMinutes = (time) => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+const isValidTime = (time) => {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(time);
+};
+
 exports.bookAppointment = async (req, res, next) => {
   let claimedSlot;
+  let createdSplitSlots = [];
+  let originalSlot;
 
   try {
-    const { slotId } = req.body;
+    const { slotId, startTime, endTime } = req.body;
     if (!slotId) {
       return res.status(400).json({ error: 'slotId is required' });
     }
@@ -25,19 +36,86 @@ exports.bookAppointment = async (req, res, next) => {
       return res.status(400).json({ error: 'Slot not available' });
     }
 
-    const hasConflict = await checkPatientConflict(Appointment, req.user.id, slot);
+    originalSlot = {
+      startTime: slot.startTime,
+      endTime: slot.endTime
+    };
+
+    const appointmentStartTime = startTime || slot.startTime;
+    const appointmentEndTime = endTime || slot.endTime;
+
+    if (!isValidTime(appointmentStartTime) || !isValidTime(appointmentEndTime)) {
+      return res.status(400).json({ error: 'startTime and endTime must be in HH:mm format' });
+    }
+
+    const slotStart = toMinutes(slot.startTime);
+    const slotEnd = toMinutes(slot.endTime);
+    const appointmentStart = toMinutes(appointmentStartTime);
+    const appointmentEnd = toMinutes(appointmentEndTime);
+
+    if (appointmentEnd <= appointmentStart) {
+      return res.status(400).json({ error: 'endTime must be after startTime' });
+    }
+
+    if (appointmentStart < slotStart || appointmentEnd > slotEnd) {
+      return res.status(400).json({ error: 'Selected time must be within the available slot' });
+    }
+
+    if (appointmentEnd - appointmentStart !== 30) {
+      return res.status(400).json({ error: 'Appointments must be 30 minutes long' });
+    }
+
+    const requestedSlot = {
+      date: slot.date,
+      startTime: appointmentStartTime,
+      endTime: appointmentEndTime
+    };
+
+    const hasConflict = await checkPatientConflict(Appointment, req.user.id, requestedSlot);
     if (hasConflict) {
       return res.status(409).json({ error: 'Patient already has an overlapping appointment' });
     }
 
     claimedSlot = await Slot.findOneAndUpdate(
       { _id: slotId, isAvailable: true },
-      { $set: { isAvailable: false } },
+      {
+        $set: {
+          startTime: appointmentStartTime,
+          endTime: appointmentEndTime,
+          isAvailable: false
+        }
+      },
       { new: true }
     );
 
     if (!claimedSlot) {
       return res.status(409).json({ error: 'Slot not available' });
+    }
+
+    const splitSlots = [];
+
+    if (appointmentStart > slotStart) {
+      splitSlots.push({
+        doctorId: claimedSlot.doctorId,
+        date: claimedSlot.date,
+        startTime: slot.startTime,
+        endTime: appointmentStartTime,
+        isAvailable: true
+      });
+    }
+
+    if (appointmentEnd < slotEnd) {
+      splitSlots.push({
+        doctorId: claimedSlot.doctorId,
+        date: claimedSlot.date,
+        startTime: appointmentEndTime,
+        endTime: slot.endTime,
+        isAvailable: true
+      });
+    }
+
+    if (splitSlots.length) {
+      createdSplitSlots = await Slot.insertMany(splitSlots);
     }
 
     const appointment = new Appointment({
@@ -50,8 +128,18 @@ exports.bookAppointment = async (req, res, next) => {
 
     return res.status(201).json({ data: appointment });
   } catch (err) {
+    if (createdSplitSlots.length) {
+      await Slot.deleteMany({ _id: { $in: createdSplitSlots.map((splitSlot) => splitSlot._id) } });
+    }
+
     if (claimedSlot) {
-      await Slot.findByIdAndUpdate(claimedSlot._id, { $set: { isAvailable: true } });
+      await Slot.findByIdAndUpdate(claimedSlot._id, {
+        $set: {
+          startTime: originalSlot.startTime,
+          endTime: originalSlot.endTime,
+          isAvailable: true
+        }
+      });
     }
     next(err);
   }
@@ -97,14 +185,23 @@ exports.cancelAppointment = async (req, res, next) => {
       return res.status(400).json({ error: 'Only booked appointments can be cancelled' });
     }
 
+    if (!req.body.cancelReason || !req.body.cancelReason.trim()) {
+      return res.status(400).json({ error: 'cancelReason is required' });
+    }
+
     appointment.status = 'cancelled';
-    if (req.body.cancelReason) appointment.cancelReason = req.body.cancelReason;
+    appointment.cancelReason = req.body.cancelReason.trim();
     await appointment.save();
 
     const slot = await Slot.findById(appointment.slotId);
     if (slot) {
-      slot.isAvailable = true;
-      await slot.save();
+      await Slot.create({
+        doctorId: slot.doctorId,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        isAvailable: true
+      });
     }
     return res.json({ data: appointment });
   } catch (err) {
@@ -125,8 +222,13 @@ exports.completeAppointment = async (req, res, next) => {
     if (appointment.status !== 'booked') {
       return res.status(400).json({ error: 'Only booked appointments can be completed' });
     }
+
+    if (!req.body.doctorNotes || !req.body.doctorNotes.trim()) {
+      return res.status(400).json({ error: 'doctorNotes is required' });
+    }
+
     appointment.status = 'completed';
-    if (req.body.doctorNotes) appointment.doctorNotes = req.body.doctorNotes;
+    appointment.doctorNotes = req.body.doctorNotes.trim();
     await appointment.save();
     return res.json({ data: appointment });
   } catch (err) {
