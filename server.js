@@ -5,16 +5,17 @@ require('dotenv').config();
 
 const app = express();
 
-const doctorRoutes = require('./api/routes/doctorRoutes');
-const patientRoutes = require('./api/routes/patientRoutes');
-app.use('/api/doctors', doctorRoutes);
-app.use('/api/patients', patientRoutes);
-
 app.use(cors());
 app.use(express.json());
-
-// Serve static files from frontend directory
 app.use(express.static('frontend'));
+
+const authRoutes = require('./api/routes/authRoutes');
+const doctorRoutes = require('./api/routes/doctorRoutes');
+const patientRoutes = require('./api/routes/patientRoutes');
+const slotRoutes = require('./api/routes/slotRoutes');
+const appointmentRoutes = require('./api/routes/appointmentRoutes');
+const adminRoutes = require('./api/routes/adminRoutes');
+const errorHandler = require('./api/middleware/errorHandler');
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
@@ -25,9 +26,17 @@ mongoose.connect(process.env.MONGO_URI, {
 }).catch(err => console.log(err));
 
 // Routes
-// app.use('/api/auth', require('./api/routes/authRoutes'));
-// Add other routes here
+app.get('/health', (req, res) => res.json({ data: 'ok' }));
+app.use('/api/auth', authRoutes);
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/slots', slotRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/admin', adminRoutes);
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

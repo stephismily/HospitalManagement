@@ -3,81 +3,149 @@ const jwt = require('jsonwebtoken');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 
-// Register
-const register = async (req, res) => {
-  const { patientName, contact, email, password, dob, address } = req.body;
+const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+
+const createToken = (user) => {
+  return jwt.sign(
+    { userId: user._id, role: user.role },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+};
+
+const sanitizeUser = (user) => ({
+  id: user._id,
+  role: user.role,
+  email: user.email,
+  name: user.patientName || user.doctorName,
+  firstLogin: user.firstLogin
+});
+
+const findUserByEmail = async (email) => {
+  const doctor = await Doctor.findOne({ email });
+  if (doctor) return doctor;
+
+  return Patient.findOne({ email });
+};
+
+const register = async (req, res, next) => {
   try {
-    const user = new Patient({
-      patientName,
-      contact,
-      email,
-      password: await bcrypt.hash(password, 10),
-      dob,
-      address
-    });
+    const { role = 'patient', email, password, contact } = req.body;
+
+    if (!['doctor', 'patient'].includes(role)) {
+      return res.status(400).json({ error: 'role must be either "doctor" or "patient"' });
+    }
+
+    if (!email || !password || !contact) {
+      return res.status(400).json({ error: 'email, password and contact are required' });
+    }
+
+    const existing = await findUserByEmail(email);
+    if (existing) {
+      return res.status(409).json({ error: 'Email already in use' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    let user;
+
+    if (role === 'doctor') {
+      const { doctorName, specialization } = req.body;
+      if (!doctorName || !specialization) {
+        return res.status(400).json({ error: 'doctorName and specialization are required for doctor registration' });
+      }
+
+      user = new Doctor({
+        doctorName,
+        specialization,
+        contact,
+        email,
+        password: passwordHash,
+        role: 'doctor',
+        firstLogin: false
+      });
+    } else {
+      const { patientName, dob, address } = req.body;
+      if (!patientName || !dob) {
+        return res.status(400).json({ error: 'patientName and dob are required for patient registration' });
+      }
+
+      user = new Patient({
+        patientName,
+        contact,
+        email,
+        password: passwordHash,
+        dob,
+        address,
+        role: 'patient'
+      });
+    }
+
     await user.save();
-    res.status(201).json({ message: 'Patient registered successfully' });
+
+    return res.status(201).json({
+      data: {
+        user: sanitizeUser(user),
+        token: createToken(user)
+      }
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// Login
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   const { email, password } = req.body;
   try {
-    let user = await Doctor.findOne({ email });
-    let role;
-
-    if (user) {
-      role = user.role;
-    } else {
-      user = await Patient.findOne({ email });
-      if (user) role = user.role;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'email and password are required' });
     }
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user._id, role, firstLogin: user.firstLogin }, process.env.JWT_SECRET);
-    
-    // Check if it's doctor's first login
-    if (user.firstLogin) {
-      return res.json({ token, firstLogin: true, message: 'Please change your password' });
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
-    res.json({ token, firstLogin: false });
+
+    return res.json({
+      data: {
+        user: sanitizeUser(user),
+        token: createToken(user),
+        firstLogin: Boolean(user.firstLogin)
+      }
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// Change Password on First Login
-const changePasswordFirstLogin = async (req, res) => {
+const changePasswordFirstLogin = async (req, res, next) => {
   const { newPassword } = req.body;
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: 'Unauthorized' });
+    if (!newPassword) {
+      return res.status(400).json({ error: 'newPassword is required' });
     }
 
     const doctor = await Doctor.findById(req.user.id);
     if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found' });
+      return res.status(404).json({ error: 'Doctor not found' });
     }
 
     if (!doctor.firstLogin) {
-      return res.status(400).json({ message: 'This endpoint is only for first login' });
+      return res.status(400).json({ error: 'This endpoint is only for first login' });
     }
 
-    // Hash new password and update
     doctor.password = await bcrypt.hash(newPassword, 10);
     doctor.firstLogin = false;
     await doctor.save();
 
-    res.json({ message: 'Password changed successfully' });
+    return res.json({ data: { message: 'Password changed successfully' } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 

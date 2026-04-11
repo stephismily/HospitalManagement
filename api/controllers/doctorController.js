@@ -1,45 +1,56 @@
 const Doctor = require('../models/Doctor');
+const Appointment = require('../models/Appointment');
+const Slot = require('../models/Slot');
 
-// ...existing code...
-
-// GET /api/doctors/me/appointments
-exports.getMyAppointments = async (req, res, next) => {
+const listDoctors = async (req, res, next) => {
   try {
-    const appointments = await require('../models/Appointment').find({ doctorId: req.user.id });
-    res.json({ data: appointments });
+    const doctors = await Doctor.find().select('-password');
+    return res.json({ data: doctors });
   } catch (err) {
     next(err);
   }
 };
 
-// GET /api/doctors/me/slots
-exports.getMySlots = async (req, res, next) => {
+const updateMe = async (req, res, next) => {
   try {
-    const slots = await require('../models/Slot').find({ doctorId: req.user.id });
-    res.json({ data: slots });
+    const blockedFields = ['password', 'role', 'firstLogin'];
+    const updates = { ...req.body };
+    blockedFields.forEach((field) => delete updates[field]);
+
+    const updated = await Doctor.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true
+    }).select('-password');
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+
+    return res.json({ data: updated });
   } catch (err) {
     next(err);
   }
 };
 
-// Get profile
-const getProfile = async (req, res) => {
+const getMyAppointments = async (req, res, next) => {
   try {
-    const doctor = await Doctor.findById(req.user.id);
-    res.json(doctor);
+    const appointments = await Appointment.find({ doctorId: req.user.id })
+      .populate('patientId', '-password')
+      .populate('slotId');
+
+    return res.json({ data: appointments });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// Update profile
-const updateProfile = async (req, res) => {
+const getMySlots = async (req, res, next) => {
   try {
-    const updated = await Doctor.findByIdAndUpdate(req.user.id, req.body, { new: true });
-    res.json(updated);
+    const slots = await Slot.find({ doctorId: req.user.id });
+    return res.json({ data: slots });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-module.exports = { getProfile, updateProfile };
+module.exports = { listDoctors, updateMe, getMyAppointments, getMySlots };

@@ -1,12 +1,11 @@
 const express = require('express');
-const { getProfile, updateProfile } = require('../controllers/patientController');
 const auth = require('../middleware/authMiddleware');
+const requireRole = require('../middleware/roleMiddleware');
 const patientController = require('../controllers/patientController');
 
 const router = express.Router();
 
-router.get('/me/appointments', auth, patientController.getMyAppointments);
-router.get('/profile', auth, getProfile);
-router.put('/profile', auth, updateProfile);
+router.put('/me', auth, requireRole('patient'), patientController.updateMe);
+router.get('/me/appointments', auth, requireRole('patient'), patientController.getMyAppointments);
 
 module.exports = router;

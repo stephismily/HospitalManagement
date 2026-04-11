@@ -1,35 +1,37 @@
 const Patient = require('../models/Patient');
+const Appointment = require('../models/Appointment');
 
-// Get profile
-const getProfile = async (req, res) => {
+const updateMe = async (req, res, next) => {
   try {
-    const patient = await Patient.findById(req.user.id);
-    res.json(patient);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    const blockedFields = ['password', 'role'];
+    const updates = { ...req.body };
+    blockedFields.forEach((field) => delete updates[field]);
 
-// Update profile
-const updateProfile = async (req, res) => {
-  try {
-    const updated = await Patient.findByIdAndUpdate(req.user.id, req.body, { new: true });
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    const updated = await Patient.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true
+    }).select('-password');
 
-// ...existing code...
+    if (!updated) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
 
-// GET /api/patients/me/appointments
-exports.getMyAppointments = async (req, res, next) => {
-  try {
-    const appointments = await require('../models/Appointment').find({ patientId: req.user.id });
-    res.json({ data: appointments });
+    return res.json({ data: updated });
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { getProfile, updateProfile };
+const getMyAppointments = async (req, res, next) => {
+  try {
+    const appointments = await Appointment.find({ patientId: req.user.id })
+      .populate('doctorId', '-password')
+      .populate('slotId');
+
+    return res.json({ data: appointments });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { updateMe, getMyAppointments };
