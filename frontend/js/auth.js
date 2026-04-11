@@ -35,7 +35,19 @@ loginForm.addEventListener('submit', async (e) => {
   if (response.ok) {
     localStorage.setItem('token', data.token);
     const decoded = parseJwt(data.token);
-    window.location.href = decoded.role === 'doctor' ? 'doctor.html' : 'patient.html';
+    localStorage.setItem('role', decoded.role);
+    
+    if (decoded.role === 'admin') {
+      window.location.href = 'admin.html';
+    } else if (decoded.role === 'doctor') {
+      if (decoded.firstLogin) {
+        window.location.href = 'changePassword.html';
+      } else {
+        window.location.href = 'doctor.html';
+      }
+    } else {
+      window.location.href = 'patient.html';
+    }
   } else {
     authMessage.innerHTML = `<div class="alert alert-danger">${data.message || 'Login failed'}</div>`;
   }

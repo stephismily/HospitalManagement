@@ -6,7 +6,8 @@ const doctorSchema = new mongoose.Schema({
   contact: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, default: 'doctor' }
+  role: { type: String, default: 'doctor' },
+  firstLogin: { type: Boolean, default: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Doctor', doctorSchema);

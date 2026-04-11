@@ -21,6 +21,7 @@ mongoose.connect(process.env.MONGO_URI, {
 
 // Routes
 app.use('/api/auth', require('./api/routes/authRoutes'));
+app.use('/api/admin', require('./api/routes/adminRoutes'));
 // Add other routes here
 
 // Error handling middleware
