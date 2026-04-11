@@ -308,7 +308,9 @@
     </div>
 
     <script>
-        const API_BASE = window.location.port === '5000' ? window.location.origin : 'http://localhost:5000';
+        const API_BASE = window.location.protocol === 'file:' || window.location.port !== '3000'
+            ? 'http://localhost:3000'
+            : window.location.origin;
 
         // Check if admin is logged in
         window.addEventListener('DOMContentLoaded', () => {
@@ -462,3 +464,4 @@
     </script>
 </body>
 </html>
+

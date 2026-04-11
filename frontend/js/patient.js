@@ -1,5 +1,7 @@
 const token = localStorage.getItem('token');
-const API_BASE = window.location.port === '5000' ? window.location.origin : 'http://localhost:5000';
+const API_BASE = window.location.protocol === 'file:' || window.location.port !== '3000'
+  ? 'http://localhost:3000'
+  : window.location.origin;
 
 const profileEl = document.getElementById('profile');
 const slotsListEl = document.getElementById('slotsList');
@@ -256,3 +258,4 @@ logoutBtn.addEventListener('click', () => {
 });
 
 loadDashboard();
+

@@ -5,7 +5,9 @@ const showRegister = document.getElementById('showRegister');
 const loginSection = document.getElementById('loginSection');
 const registerSection = document.getElementById('registerSection');
 const authMessage = document.getElementById('authMessage');
-const API_BASE = window.location.port === '5000' ? window.location.origin : 'http://localhost:5000';
+const API_BASE = window.location.protocol === 'file:' || window.location.port !== '3000'
+  ? 'http://localhost:3000'
+  : window.location.origin;
 
 const showSection = (section) => {
   if (section === 'login') {
@@ -26,37 +28,41 @@ loginForm.addEventListener('submit', async (e) => {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
 
-  const response = await fetch(`${API_BASE}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  });
+  try {
+    const response = await fetch(`${API_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
 
-  const data = await response.json();
-  if (response.ok) {
-    const authData = data.data || data;
-    const token = authData.token;
-    const decoded = parseJwt(token);
-    const role = authData.user?.role || decoded.role;
-    const firstLogin = Boolean(authData.firstLogin || authData.user?.firstLogin || decoded.firstLogin);
+    const data = await response.json();
+    if (response.ok) {
+      const authData = data.data || data;
+      const token = authData.token;
+      const decoded = parseJwt(token);
+      const role = authData.user?.role || decoded.role;
+      const firstLogin = Boolean(authData.firstLogin || authData.user?.firstLogin || decoded.firstLogin);
 
-    localStorage.setItem('token', token);
-    localStorage.setItem('role', role);
-    localStorage.setItem('firstLogin', String(firstLogin));
-    
-    if (role === 'admin') {
-      window.location.href = 'admin.html';
-    } else if (role === 'doctor') {
-      if (firstLogin) {
-        window.location.href = 'changePassword.html';
+      localStorage.setItem('token', token);
+      localStorage.setItem('role', role);
+      localStorage.setItem('firstLogin', String(firstLogin));
+
+      if (role === 'admin') {
+        window.location.href = 'admin.html';
+      } else if (role === 'doctor') {
+        if (firstLogin) {
+          window.location.href = 'changePassword.html';
+        } else {
+          window.location.href = 'doctor.html';
+        }
       } else {
-        window.location.href = 'doctor.html';
+        window.location.href = 'patient.html';
       }
     } else {
-      window.location.href = 'patient.html';
+      authMessage.innerHTML = `<div class="alert alert-danger">${data.error || data.message || 'Login failed'}</div>`;
     }
-  } else {
-    authMessage.innerHTML = `<div class="alert alert-danger">${data.error || data.message || 'Login failed'}</div>`;
+  } catch (error) {
+    authMessage.innerHTML = '<div class="alert alert-danger">Unable to reach the server. Make sure the backend is running on port 3000.</div>';
   }
 });
 
@@ -71,18 +77,22 @@ registerForm.addEventListener('submit', async (e) => {
 
   const payload = { patientName, contact, email, password, dob, address };
 
+  try {
     const response = await fetch(`${API_BASE}/api/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-  const data = await response.json();
-  if (response.ok) {
-    authMessage.innerHTML = '<div class="alert alert-success">Registration successful. You can now log in.</div>';
-    registerForm.reset();
-  } else {
-    authMessage.innerHTML = `<div class="alert alert-danger">${data.error || 'Registration failed'}</div>`;
+    const data = await response.json();
+    if (response.ok) {
+      authMessage.innerHTML = '<div class="alert alert-success">Registration successful. You can now log in.</div>';
+      registerForm.reset();
+    } else {
+      authMessage.innerHTML = `<div class="alert alert-danger">${data.error || 'Registration failed'}</div>`;
+    }
+  } catch (error) {
+    authMessage.innerHTML = '<div class="alert alert-danger">Unable to reach the server. Make sure the backend is running on port 3000.</div>';
   }
 });
 
