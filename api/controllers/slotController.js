@@ -3,7 +3,7 @@ const Slot = require('../models/Slot');
 // Create slot
 const createSlot = async (req, res) => {
   try {
-    const slot = new Slot({ ...req.body, doctor: req.user.id });
+    const slot = new Slot({ ...req.body, doctorId: req.user.id });
     await slot.save();
     res.status(201).json(slot);
   } catch (err) {
@@ -14,7 +14,7 @@ const createSlot = async (req, res) => {
 // Get slots
 const getSlots = async (req, res) => {
   try {
-    const slots = await Slot.find({ doctor: req.user.id });
+    const slots = await Slot.find({ doctorId: req.user.id });
     res.json(slots);
   } catch (err) {
     res.status(500).json({ error: err.message });
