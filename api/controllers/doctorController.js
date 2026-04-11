@@ -1,11 +1,13 @@
 const Doctor = require('../models/Doctor');
+const Appointment = require('../models/Appointment');
+const Slot = require('../models/Slot');
 
 // ...existing code...
 
 // GET /api/doctors/me/appointments
-exports.getMyAppointments = async (req, res, next) => {
+const getMyAppointments = async (req, res, next) => {
   try {
-    const appointments = await require('../models/Appointment').find({ doctorId: req.user.id });
+    const appointments = await Appointment.find({ doctorId: req.user.id });
     res.json({ data: appointments });
   } catch (err) {
     next(err);
@@ -13,9 +15,9 @@ exports.getMyAppointments = async (req, res, next) => {
 };
 
 // GET /api/doctors/me/slots
-exports.getMySlots = async (req, res, next) => {
+const getMySlots = async (req, res, next) => {
   try {
-    const slots = await require('../models/Slot').find({ doctorId: req.user.id });
+    const slots = await Slot.find({ doctorId: req.user.id });
     res.json({ data: slots });
   } catch (err) {
     next(err);
@@ -42,4 +44,10 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, updateProfile };
+// Unified export object to prevent "Undefined" errors in routes
+module.exports = { 
+  getProfile, 
+  updateProfile, 
+  getMyAppointments, 
+  getMySlots 
+};

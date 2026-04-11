@@ -5,16 +5,23 @@ require('dotenv').config();
 
 const app = express();
 
-const doctorRoutes = require('./api/routes/doctorRoutes');
-const patientRoutes = require('./api/routes/patientRoutes');
-app.use('/api/doctors', doctorRoutes);
-app.use('/api/patients', patientRoutes);
-
+// 1. Essential Middlewares MUST come before routes
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from frontend directory
+// 2. Static files
 app.use(express.static('frontend'));
+
+// 3. Route Registrations
+const doctorRoutes = require('./api/routes/doctorRoutes');
+const patientRoutes = require('./api/routes/patientRoutes');
+const authRoutes = require('./api/routes/authRoutes');
+const adminRoutes = require('./api/routes/adminRoutes');
+
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
