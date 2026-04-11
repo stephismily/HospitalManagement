@@ -5,9 +5,9 @@ const Slot = require('../models/Slot');
 // ...existing code...
 
 // GET /api/doctors/me/appointments
-const getMyAppointments = async (req, res, next) => {
+exports.getMyAppointments = async (req, res, next) => {
   try {
-    const appointments = await Appointment.find({ doctorId: req.user.id });
+    const appointments = await require('../models/Appointment').find({ doctorId: req.user.id });
     res.json({ data: appointments });
   } catch (err) {
     next(err);
@@ -15,39 +15,34 @@ const getMyAppointments = async (req, res, next) => {
 };
 
 // GET /api/doctors/me/slots
-const getMySlots = async (req, res, next) => {
+exports.getMySlots = async (req, res, next) => {
   try {
-    const slots = await Slot.find({ doctorId: req.user.id });
+    const slots = await require('../models/Slot').find({ doctorId: req.user.id });
     res.json({ data: slots });
   } catch (err) {
     next(err);
   }
 };
 
-// Get profile
-const getProfile = async (req, res) => {
+const getMyAppointments = async (req, res, next) => {
   try {
-    const doctor = await Doctor.findById(req.user.id);
-    res.json(doctor);
+    const appointments = await Appointment.find({ doctorId: req.user.id })
+      .populate('patientId', '-password')
+      .populate('slotId');
+
+    return res.json({ data: appointments });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// Update profile
-const updateProfile = async (req, res) => {
+const getMySlots = async (req, res, next) => {
   try {
-    const updated = await Doctor.findByIdAndUpdate(req.user.id, req.body, { new: true });
-    res.json(updated);
+    const slots = await Slot.find({ doctorId: req.user.id });
+    return res.json({ data: slots });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// Unified export object to prevent "Undefined" errors in routes
-module.exports = { 
-  getProfile, 
-  updateProfile, 
-  getMyAppointments, 
-  getMySlots 
-};
+module.exports = { getProfile, updateProfile };

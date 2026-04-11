@@ -13,19 +13,19 @@ const generatePassword = (doctorName, contact) => {
 };
 
 // Onboard Doctor
-const onboardDoctor = async (req, res) => {
+const onboardDoctor = async (req, res, next) => {
   const { doctorName, specialization, contact, email } = req.body;
   
   try {
     // Validate required fields
     if (!doctorName || !specialization || !contact || !email) {
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ error: 'All fields are required' });
     }
 
     // Check if doctor already exists
     const existingDoctor = await Doctor.findOne({ email });
     if (existingDoctor) {
-      return res.status(400).json({ message: 'Doctor with this email already exists' });
+      return res.status(400).json({ error: 'Doctor with this email already exists' });
     }
 
     // Generate password based on pattern
@@ -44,45 +44,47 @@ const onboardDoctor = async (req, res) => {
 
     await doctor.save();
 
-    res.status(201).json({ 
-      message: 'Doctor onboarded successfully',
-      doctor: {
-        id: doctor._id,
-        doctorName: doctor.doctorName,
-        email: doctor.email,
-        specialization: doctor.specialization,
-        contact: doctor.contact
-      },
-      tempPassword: tempPassword
+    return res.status(201).json({
+      data: {
+        message: 'Doctor onboarded successfully',
+        doctor: {
+          id: doctor._id,
+          doctorName: doctor.doctorName,
+          email: doctor.email,
+          specialization: doctor.specialization,
+          contact: doctor.contact
+        },
+        tempPassword
+      }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
 // Get all doctors
-const getAllDoctors = async (req, res) => {
+const getAllDoctors = async (req, res, next) => {
   try {
     const doctors = await Doctor.find().select('-password');
-    res.json(doctors);
+    return res.json({ data: doctors });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
 // Delete doctor
-const deleteDoctor = async (req, res) => {
+const deleteDoctor = async (req, res, next) => {
   try {
     const { doctorId } = req.params;
     const doctor = await Doctor.findByIdAndDelete(doctorId);
     
     if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found' });
+      return res.status(404).json({ error: 'Doctor not found' });
     }
 
-    res.json({ message: 'Doctor deleted successfully' });
+    return res.json({ data: { message: 'Doctor deleted successfully' } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 

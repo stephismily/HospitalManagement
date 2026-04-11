@@ -5,23 +5,16 @@ require('dotenv').config();
 
 const app = express();
 
-// 1. Essential Middlewares MUST come before routes
+const doctorRoutes = require('./api/routes/doctorRoutes');
+const patientRoutes = require('./api/routes/patientRoutes');
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/patients', patientRoutes);
+
 app.use(cors());
 app.use(express.json());
 
-// 2. Static files
+// Serve static files from frontend directory
 app.use(express.static('frontend'));
-
-// 3. Route Registrations
-const doctorRoutes = require('./api/routes/doctorRoutes');
-const patientRoutes = require('./api/routes/patientRoutes');
-const authRoutes = require('./api/routes/authRoutes');
-const adminRoutes = require('./api/routes/adminRoutes');
-
-app.use('/api/doctors', doctorRoutes);
-app.use('/api/patients', patientRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
@@ -32,9 +25,17 @@ mongoose.connect(process.env.MONGO_URI, {
 }).catch(err => console.log(err));
 
 // Routes
-// app.use('/api/auth', require('./api/routes/authRoutes'));
-// Add other routes here
+app.get('/health', (req, res) => res.json({ data: 'ok' }));
+app.use('/api/auth', authRoutes);
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/slots', slotRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/admin', adminRoutes);
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
