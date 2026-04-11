@@ -1,4 +1,6 @@
 const express = require('express');
+const { getProfile, updateProfile } = require('../controllers/doctorController');
+
 const doctorController = require('../controllers/doctorController');
 const auth = require('../middleware/authMiddleware');
 const requireRole = require('../middleware/roleMiddleware');
