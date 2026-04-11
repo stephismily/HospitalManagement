@@ -2,13 +2,10 @@ const Doctor = require('../models/Doctor');
 const Appointment = require('../models/Appointment');
 const Slot = require('../models/Slot');
 
-// ...existing code...
-
-// GET /api/doctors/me/appointments
-exports.getMyAppointments = async (req, res, next) => {
+const listDoctors = async (req, res, next) => {
   try {
-    const appointments = await require('../models/Appointment').find({ doctorId: req.user.id });
-    res.json({ data: appointments });
+    const doctors = await Doctor.find().select('-password');
+    return res.json({ data: doctors });
   } catch (err) {
     next(err);
   }
@@ -28,11 +25,22 @@ const getMe = async (req, res, next) => {
   }
 };
 
-// GET /api/doctors/me/slots
-exports.getMySlots = async (req, res, next) => {
+const updateMe = async (req, res, next) => {
   try {
-    const slots = await require('../models/Slot').find({ doctorId: req.user.id });
-    res.json({ data: slots });
+    const blockedFields = ['password', 'role', 'firstLogin'];
+    const updates = { ...req.body };
+    blockedFields.forEach((field) => delete updates[field]);
+
+    const updated = await Doctor.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true
+    }).select('-password');
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+
+    return res.json({ data: updated });
   } catch (err) {
     next(err);
   }
@@ -59,4 +67,4 @@ const getMySlots = async (req, res, next) => {
   }
 };
 
-module.exports = { listDoctors, updateMe, getMyAppointments, getMySlots };
+module.exports = { listDoctors, getMe, updateMe, getMyAppointments, getMySlots };
