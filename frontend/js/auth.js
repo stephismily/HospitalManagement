@@ -25,8 +25,8 @@ showRegister.addEventListener('click', () => showSection('register'));
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
 
   try {
     const response = await fetch(`${API_BASE}/api/auth/login`, {
@@ -70,8 +70,8 @@ registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const patientName = document.getElementById('patientName').value;
   const contact = document.getElementById('contact').value;
-  const email = document.getElementById('registerEmail').value;
-  const password = document.getElementById('registerPassword').value;
+  const email = document.getElementById('registerEmail').value.trim();
+  const password = document.getElementById('registerPassword').value.trim();
   const dob = document.getElementById('dob').value;
   const address = document.getElementById('address').value;
 

@@ -22,16 +22,25 @@ const sanitizeUser = (user) => ({
   firstLogin: user.firstLogin
 });
 
+const normalizeEmail = (email = '') => email.trim().toLowerCase();
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const findUserByEmail = async (email) => {
-  const doctor = await Doctor.findOne({ email });
+  const normalizedEmail = normalizeEmail(email);
+  const emailMatcher = new RegExp(`^${escapeRegex(normalizedEmail)}$`, 'i');
+
+  const doctor = await Doctor.findOne({ email: emailMatcher });
   if (doctor) return doctor;
 
-  return Patient.findOne({ email });
+  return Patient.findOne({ email: emailMatcher });
 };
 
 const register = async (req, res, next) => {
   try {
-    const { role = 'patient', email, password, contact } = req.body;
+    const { role = 'patient', password, contact } = req.body;
+    const sharedName = req.body.name;
+    const email = normalizeEmail(req.body.email);
 
     if (!['doctor', 'patient'].includes(role)) {
       return res.status(400).json({ error: 'role must be either "doctor" or "patient"' });
@@ -50,7 +59,8 @@ const register = async (req, res, next) => {
     let user;
 
     if (role === 'doctor') {
-      const { doctorName, specialization } = req.body;
+      const doctorName = req.body.doctorName || sharedName;
+      const { specialization } = req.body;
       if (!doctorName || !specialization) {
         return res.status(400).json({ error: 'doctorName and specialization are required for doctor registration' });
       }
@@ -65,7 +75,8 @@ const register = async (req, res, next) => {
         firstLogin: false
       });
     } else {
-      const { patientName, dob, address } = req.body;
+      const patientName = req.body.patientName || sharedName;
+      const { dob, address } = req.body;
       if (!patientName || !dob) {
         return res.status(400).json({ error: 'patientName and dob are required for patient registration' });
       }
@@ -95,7 +106,8 @@ const register = async (req, res, next) => {
 };
 
 const login = async (req, res, next) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const password = typeof req.body.password === 'string' ? req.body.password.trim() : '';
   try {
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
