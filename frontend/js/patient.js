@@ -15,6 +15,84 @@ const clearSearchBtn = document.getElementById("clearSearchBtn");
 const doctorNameEl = document.getElementById("doctorName");
 const slotDateEl = document.getElementById("slotDate");
 const specializationEl = document.getElementById("specialization");
+const welcomeUserEl = document.getElementById("welcomeUser");
+
+const SPECIALIZATIONS = [
+  "Cardiology",
+  "Dentistry",
+  "Dermatology",
+  "Endocrinology",
+  "ENT Specialist",
+  "Gastroenterology",
+  "General Physician",
+  "Gynecology",
+  "Nephrology",
+  "Neurology",
+  "Oncology",
+  "Ophthalmology",
+  "Orthopedics",
+  "Pediatrics",
+  "Psychiatry",
+  "Radiology",
+  "Urology",
+];
+
+const setupSpecializationDropdown = () => {
+  if (!specializationEl) return;
+  const dataList = document.createElement("datalist");
+  dataList.id = "specializationList";
+  SPECIALIZATIONS.sort().forEach((spec) => {
+    const option = document.createElement("option");
+    option.value = spec;
+    dataList.appendChild(option);
+  });
+  document.body.appendChild(dataList);
+  specializationEl.setAttribute("list", "specializationList");
+  specializationEl.placeholder = "Select or search specialization...";
+  specializationEl.type = "search";
+
+  // Allow re-selection by clearing on click
+  specializationEl.addEventListener("click", () => {
+    specializationEl.value = "";
+  });
+};
+
+/** Theme Management */
+const initTheme = () => {
+  const themeToggle = document.getElementById("themeToggle");
+  const currentTheme = localStorage.getItem("theme") || "light";
+
+  const style = document.createElement("style");
+  style.textContent = `
+    input::-webkit-calendar-picker-indicator,
+    input::-webkit-list-button,
+    input::-webkit-search-cancel-button {
+      filter: none;
+    }
+    [data-theme='dark'] input::-webkit-calendar-picker-indicator,
+    [data-theme='dark'] input::-webkit-list-button,
+    [data-theme='dark'] input::-webkit-search-cancel-button {
+      filter: invert(1);
+      cursor: pointer;
+    }
+  `;
+  document.head.appendChild(style);
+
+  document.documentElement.setAttribute("data-theme", currentTheme);
+
+  if (welcomeUserEl) {
+    welcomeUserEl.textContent = `Welcome, ${localStorage.getItem("userName") || "Patient"}`;
+  }
+
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      const theme = document.documentElement.getAttribute("data-theme");
+      const newTheme = theme === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      localStorage.setItem("theme", newTheme);
+    });
+  }
+};
 
 if (!token || localStorage.getItem("role") !== "patient") {
   window.location.href = "index.html";
@@ -101,13 +179,23 @@ const renderProfile = (patient) => {
 const getDoctor = (slot) => slot.doctorId || {};
 
 const renderSlots = (slots) => {
-  if (!slots.length) {
+  const now = new Date();
+  // Filter out slots that have already ended
+  const visibleSlots = slots.filter((slot) => {
+    if (!slot.date || !slot.endTime) return true;
+    const [hours, minutes] = slot.endTime.split(":").map(Number);
+    const end = new Date(slot.date);
+    end.setHours(hours, minutes, 0, 0);
+    return end > now;
+  });
+
+  if (!visibleSlots.length) {
     slotsListEl.innerHTML =
       '<div class="col-12"><div class="alert alert-info">No available slots found.</div></div>';
     return;
   }
 
-  slotsListEl.innerHTML = slots
+  slotsListEl.innerHTML = visibleSlots
     .map((slot) => {
       const doctor = getDoctor(slot);
       const disabled = slot.isAvailable ? "" : "disabled";
@@ -145,22 +233,19 @@ const renderSlots = (slots) => {
 };
 
 const renderAppointments = (appointments) => {
-  const visibleAppointments = appointments.filter(
-    (appointment) => appointment.status !== "completed",
-  );
+  const categories = {
+    booked: appointments.filter((a) => a.status === "booked"),
+    completed: appointments.filter((a) => a.status === "completed"),
+    cancelled: appointments.filter((a) => a.status === "cancelled"),
+  };
 
-  if (!visibleAppointments.length) {
-    appointmentsListEl.innerHTML =
-      '<div class="col-12"><div class="alert alert-info">No appointments found.</div></div>';
-    return;
-  }
+  const renderGroup = (title, list, emptyMsg) => {
+    const cards = list
+      .map((appointment) => {
+        const doctor = appointment.doctorId || {};
+        const slot = appointment.slotId || {};
 
-  appointmentsListEl.innerHTML = visibleAppointments
-    .map((appointment) => {
-      const doctor = appointment.doctorId || {};
-      const slot = appointment.slotId || {};
-
-      return `
+        return `
       <div class="col-md-6">
         <div class="card p-3 h-100 shadow-sm border-0">
           <h5 class="text-secondary">${escapeHtml(doctor.doctorName || "Doctor")}</h5>
@@ -173,8 +258,24 @@ const renderAppointments = (appointments) => {
         </div>
       </div>
     `;
-    })
-    .join("");
+      })
+      .join("");
+
+    return `
+      <div class="col-12 mt-4">
+        <h4 class="border-bottom pb-2">${title}</h4>
+      </div>
+      ${cards || `<div class="col-12"><div class="alert alert-light">${emptyMsg}</div></div>`}
+    `;
+  };
+
+  appointmentsListEl.innerHTML = `
+    <div class="row">
+      ${renderGroup("Upcoming Appointments", categories.booked, "You have no upcoming appointments.")}
+      ${renderGroup("Past Consultations", categories.completed, "No past consultations found.")}
+      ${renderGroup("Cancelled Appointments", categories.cancelled, "No cancelled appointments.")}
+    </div>
+  `;
 };
 
 const getSearchParams = () => {
@@ -207,9 +308,6 @@ const searchSlots = async () => {
 
 const loadDashboard = async () => {
   clearMessage();
-  profileEl.textContent = "Loading profile...";
-  slotsListEl.textContent = "Loading available slots...";
-  appointmentsListEl.textContent = "Loading appointments...";
 
   try {
     await Promise.all([loadProfile(), searchSlots(), loadAppointments()]);
@@ -272,4 +370,6 @@ logoutBtn.addEventListener("click", () => {
   window.location.href = "index.html";
 });
 
+initTheme();
+setupSpecializationDropdown();
 loadDashboard();

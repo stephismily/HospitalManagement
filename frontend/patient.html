@@ -1,65 +1,89 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Patient Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-" crossorigin="anonymous">
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body class="bg-light">
-  <div class="container py-5">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h2 class="card-title">Patient Dashboard</h2>
-        <p class="text-muted">Search available doctor slots and book an appointment.</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Patient Dashboard</title>
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="navbar-brand">Hospital Appointment API</div>
+      <div class="nav-actions">
+        <span id="welcomeUser" class="welcome-text"></span>
+        <button id="themeToggle" class="theme-toggle-btn" title="Toggle Theme">
+          🌓
+        </button>
+        <button id="logoutBtn" class="btn-primary" style="padding: 0.5rem 1rem">
+          Logout
+        </button>
+      </div>
+    </nav>
 
-        <div id="patientMessage" class="mb-3"></div>
+    <main class="container">
+      <div id="patientMessage"></div>
 
-        <div class="d-flex gap-2 mb-4">
-          <button class="btn btn-primary" id="resetBtn">Reset</button>
-          <button class="btn btn-secondary" id="logoutBtn">Logout</button>
-        </div>
-
-        <section class="mb-4">
-          <h5 class="mb-3">Profile</h5>
-          <div id="profile" class="border rounded p-3 bg-white">Loading profile...</div>
+      <div class="dashboard-grid">
+        <!-- Profile Section -->
+        <section class="card">
+          <h3 class="section-header">Patient Profile</h3>
+          <div id="profile" class="text-dim">Loading profile...</div>
+          <button class="btn-primary mt-4" id="resetBtn" style="width: 100%">
+            Refresh Dashboard
+          </button>
         </section>
 
-        <section class="mb-4">
-          <h5 class="mb-3">Find Free Slots</h5>
-          <form id="slotSearchForm" class="row g-3 border rounded p-3 bg-white">
-            <div class="col-md-4">
-              <label class="form-label" for="doctorName">Doctor Name</label>
-              <input type="text" class="form-control" id="doctorName" placeholder="e.g. Smith">
+        <!-- Search Section -->
+        <section class="card">
+          <h3 class="section-header">Find Doctors</h3>
+          <form id="slotSearchForm">
+            <div class="mt-4">
+              <input
+                type="text"
+                class="form-control"
+                id="doctorName"
+                placeholder="Search by name..."
+              />
             </div>
-            <div class="col-md-4">
-              <label class="form-label" for="slotDate">Date</label>
-              <input type="date" class="form-control" id="slotDate">
+            <div class="mt-4">
+              <input
+                type="text"
+                class="form-control"
+                id="specialization"
+                placeholder="Specialization (e.g. Cardiology)"
+              />
             </div>
-            <div class="col-md-4">
-              <label class="form-label" for="specialization">Specialization</label>
-              <input type="text" class="form-control" id="specialization" placeholder="e.g. Cardiology">
+            <div class="mt-4">
+              <input type="date" class="form-control" id="slotDate" />
             </div>
-            <div class="col-12 d-flex gap-2">
-              <button type="submit" class="btn btn-success">Search Slots</button>
-              <button type="button" class="btn btn-outline-secondary" id="clearSearchBtn">Clear</button>
+            <div style="display: flex; gap: 1rem" class="mt-4">
+              <button type="submit" class="btn-primary" style="flex: 2">
+                Search
+              </button>
+              <button
+                type="button"
+                class="btn-primary"
+                id="clearSearchBtn"
+                style="flex: 1; background: var(--text-dim)"
+              >
+                Clear
+              </button>
             </div>
           </form>
         </section>
-
-        <section class="mb-4">
-          <h5 class="mb-3">Available Slots</h5>
-          <div id="slotsList" class="row g-3">Loading available slots...</div>
-        </section>
-
-        <section>
-          <h5 class="mb-3">My Appointments</h5>
-          <div id="appointmentsList" class="row g-3">Loading appointments...</div>
-        </section>
       </div>
-    </div>
-  </div>
-  <script src="js/patient.js"></script>
-</body>
+
+      <div class="mt-4">
+        <h3 class="section-header">Available Appointment Slots</h3>
+        <div id="slotsList" class="dashboard-grid">Loading...</div>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="section-header">My Appointments</h3>
+        <div id="appointmentsList" class="dashboard-grid">Loading...</div>
+      </div>
+    </main>
+
+    <script src="js/patient.js"></script>
+  </body>
 </html>

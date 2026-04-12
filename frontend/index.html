@@ -1,75 +1,119 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hospital Management</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-" crossorigin="anonymous">
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body class="bg-light">
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-md-8">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h2 class="card-title text-center mb-4">Hospital Management</h2>
-            <div class="d-flex justify-content-center mb-4">
-              <button class="btn btn-primary me-2" id="showLogin">Login</button>
-              <button class="btn btn-outline-primary" id="showRegister">Register</button>
-            </div>
-            <div id="loginSection">
-              <form id="loginForm" class="row g-3">
-                <div class="col-12">
-                  <label class="form-label">Email</label>
-                  <input type="email" class="form-control" id="email" required>
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Password</label>
-                  <input type="password" class="form-control" id="password" required>
-                </div>
-                <div class="col-12 text-center">
-                  <button type="submit" class="btn btn-primary">Login</button>
-                </div>
-              </form>
-            </div>
-            <div id="registerSection" class="d-none">
-              <form id="registerForm" class="row g-3">
-                <div class="col-12">
-                  <label class="form-label">Patient Name</label>
-                  <input type="text" class="form-control" id="patientName" required>
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Contact</label>
-                  <input type="text" class="form-control" id="contact" required>
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Email</label>
-                  <input type="email" class="form-control" id="registerEmail" required>
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Password</label>
-                  <input type="password" class="form-control" id="registerPassword" required>
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Date of Birth</label>
-                  <input type="date" class="form-control" id="dob" required>
-                </div>
-                <div class="col-12">
-                  <label class="form-label">Address</label>
-                  <textarea class="form-control" id="address" rows="2"></textarea>
-                </div>
-                <div class="col-12 text-center">
-                  <button type="submit" class="btn btn-primary">Register</button>
-                </div>
-              </form>
-            </div>
-            <div id="authMessage" class="mt-4"></div>
-          </div>
-        </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hospital Appointment API</title>
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="navbar-brand">Hospital Appointment API</div>
+      <div class="nav-actions">
+        <button id="themeToggle" class="theme-toggle-btn" title="Toggle Theme">
+          🌓
+        </button>
       </div>
-    </div>
-  </div>
-  <script src="js/auth.js"></script>
-</body>
+    </nav>
+
+    <main class="container">
+      <div id="authMessage"></div>
+
+      <!-- Login Section -->
+      <section
+        id="loginSection"
+        class="card"
+        style="max-width: 400px; margin: 4rem auto"
+      >
+        <h2 class="section-header">Sign In</h2>
+        <form id="loginForm">
+          <div class="mt-4">
+            <label>Email Address</label>
+            <input type="email" id="email" class="form-control" required />
+          </div>
+          <div class="mt-4">
+            <label>Password</label>
+            <input
+              type="password"
+              id="password"
+              class="form-control"
+              required
+            />
+          </div>
+          <button type="submit" class="btn-primary mt-4" style="width: 100%">
+            Login
+          </button>
+        </form>
+        <p class="mt-4 text-center">
+          New user? <a href="#" id="showRegister">Create account</a>
+        </p>
+      </section>
+
+      <!-- Register Section (Hidden by default) -->
+      <section
+        id="registerSection"
+        class="card d-none"
+        style="max-width: 500px; margin: 4rem auto"
+      >
+        <h2 class="section-header">Register</h2>
+        <form id="registerForm">
+          <div class="mt-4">
+            <input
+              type="text"
+              id="patientName"
+              class="form-control"
+              placeholder="Full Name"
+              required
+            />
+          </div>
+          <div class="mt-4">
+            <input
+              type="email"
+              id="registerEmail"
+              class="form-control"
+              placeholder="Email"
+              required
+            />
+          </div>
+          <div class="mt-4">
+            <input
+              type="password"
+              id="registerPassword"
+              class="form-control"
+              placeholder="Password"
+              required
+            />
+          </div>
+          <div class="mt-4">
+            <input
+              type="text"
+              id="contact"
+              class="form-control"
+              placeholder="Contact Number"
+              required
+            />
+          </div>
+          <div class="mt-4">
+            <label>DOB</label
+            ><input type="date" id="dob" class="form-control" required />
+          </div>
+          <div class="mt-4">
+            <textarea
+              id="address"
+              class="form-control"
+              placeholder="Address"
+            ></textarea>
+          </div>
+          <button type="submit" class="btn-primary mt-4" style="width: 100%">
+            Sign Up
+          </button>
+        </form>
+        <p class="mt-4 text-center">
+          Already have an account? <a href="#" id="showLogin">Sign In</a>
+        </p>
+      </section>
+    </main>
+
+    <script src="js/auth.js"></script>
+  </body>
 </html>

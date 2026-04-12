@@ -7,6 +7,25 @@ const loginSection = document.getElementById("loginSection");
 const registerSection = document.getElementById("registerSection");
 const authMessage = document.getElementById("authMessage");
 
+/** Theme Management */
+const initTheme = () => {
+  const themeToggle = document.getElementById("themeToggle");
+  const currentTheme = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-theme", currentTheme);
+
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      const theme = document.documentElement.getAttribute("data-theme");
+      const newTheme = theme === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      localStorage.setItem("theme", newTheme);
+    });
+  }
+};
+
+// Initialize theme on load
+document.addEventListener("DOMContentLoaded", initTheme);
+
 const API_BASE =
   window.location.protocol === "file:" || window.location.port !== "3000"
     ? "http://localhost:3000"
@@ -57,6 +76,7 @@ loginForm.addEventListener("submit", async (e) => {
       localStorage.setItem("token", token);
       localStorage.setItem("role", role);
       localStorage.setItem("firstLogin", String(firstLogin));
+      localStorage.setItem("userName", authData.user?.name || "User");
 
       redirectUser(role, firstLogin);
     } else {
@@ -109,5 +129,11 @@ registerForm.addEventListener("submit", async (e) => {
   }
 });
 
-showLogin.addEventListener("click", () => showSection("login"));
-showRegister.addEventListener("click", () => showSection("register"));
+showLogin.addEventListener("click", (e) => {
+  e.preventDefault();
+  showSection("login");
+});
+showRegister.addEventListener("click", (e) => {
+  e.preventDefault();
+  showSection("register");
+});

@@ -1,93 +1,194 @@
 :root {
-  --primary-color: #2c3e50; /* Deep Navy */
-  --secondary-color: #455a64; /* Steel Grey */
-  --accent-color: #3498db; /* Professional Blue */
-  --success-color: #2e7d32; /* Forest Green */
-  --danger-color: #c62828; /* Muted Red */
-  --bg-light: #f8f9fa;
-  --white: #ffffff;
-  --text-main: #212529;
-  --border-color: #dee2e6;
+  /* Professional Indigo Palette */
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --success: #10b981;
+  --danger: #ef4444;
+
+  /* Light Theme Defaults */
+  --bg-app: #f1f5f9;
+  --bg-surface: #ffffff;
+  --text-base: #0f172a;
+  --text-dim: #64748b;
+  --border-ui: #e2e8f0;
+  --nav-blur: rgba(255, 255, 255, 0.8);
+  --shadow-ui: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+[data-theme="dark"] {
+  --bg-app: #0f172a;
+  --bg-surface: #1e293b;
+  --text-base: #f1f5f9;
+  --text-dim: #94a3b8;
+  --border-ui: #334155;
+  --nav-blur: rgba(15, 23, 42, 0.8);
+  --shadow-ui: 0 10px 15px -3px rgb(0 0 0 / 0.3);
 }
 
 body {
-  background-color: var(--bg-light);
-  color: var(--text-main);
+  background-color: var(--bg-app);
+  color: var(--text-base);
   font-family:
     "Inter",
+    system-ui,
     -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
     sans-serif;
-  line-height: 1.6;
+  margin: 0;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease;
 }
 
+/* Navbar Styling */
 .navbar {
-  background-color: var(--primary-color) !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: var(--nav-blur);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-ui);
+  box-shadow: var(--shadow-ui);
 }
 
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--primary);
+  letter-spacing: -0.025em;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.welcome-text {
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+/* Aesthetic Cards */
 .card {
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  transition: transform 0.2s ease-in-out;
-  background-color: var(--white);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-ui);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-ui);
+  transition: transform 0.2s ease;
 }
 
 .card:hover {
   transform: translateY(-2px);
 }
 
+/* Forms & Inputs */
+.form-control {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-ui);
+  background: var(--bg-app);
+  color: var(--text-base);
+  transition: border-color 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Buttons */
 .btn-primary {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 .btn-primary:hover {
-  background-color: var(--secondary-color);
-  border-color: var(--secondary-color);
+  background: var(--primary-dark);
 }
 
-.alert {
-  border-radius: 6px;
-  border: none;
-  font-weight: 500;
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  background: none;
+  border: 1px solid var(--border-ui);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: var(--text-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
-.alert-danger {
-  background-color: #fce4e4;
-  color: var(--danger-color);
+.theme-toggle-btn:hover {
+  background: var(--border-ui);
 }
 
-.alert-success {
-  background-color: #e8f5e9;
-  color: var(--success-color);
+/* Helper Classes */
+.container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
 }
 
-/* Professional form styling */
-.form-control:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+.d-none {
+  display: none !important;
+}
+.gap-3 {
+  gap: 1rem;
+}
+.mt-4 {
+  margin-top: 1.5rem;
 }
 
-.slot-card {
-  border-left: 4px solid var(--accent-color);
+/* Grid layouts */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-.appointment-card-booked {
-  border-left: 4px solid var(--secondary-color);
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease-in-out;
 }
 
-.section-header {
-  border-bottom: 2px solid var(--border-color);
-  padding-bottom: 10px;
-  margin-bottom: 20px;
-  color: var(--primary-color);
-  font-weight: 600;
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
 }
 
-.loading-spinner {
-  color: var(--primary-color);
+.modal-card {
+  transform: scale(0.95);
+  transition: transform 0.2s ease-in-out;
+}
+
+.modal-overlay.active .modal-card {
+  transform: scale(1);
 }

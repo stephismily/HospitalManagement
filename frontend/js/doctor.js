@@ -14,6 +14,48 @@ const slotForm = document.getElementById("slotForm");
 const slotDateEl = document.getElementById("slotDate");
 const slotStartTimeEl = document.getElementById("slotStartTime");
 const slotEndTimeEl = document.getElementById("slotEndTime");
+const welcomeUserEl = document.getElementById("welcomeUser");
+const deleteModal = document.getElementById("deleteModal");
+const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+const cancelDeleteBtn = document.getElementById("cancelDeleteBtn");
+let slotIdToDelete = null;
+
+/** Theme Management */
+const initTheme = () => {
+  const themeToggle = document.getElementById("themeToggle");
+  const currentTheme = localStorage.getItem("theme") || "light";
+
+  const style = document.createElement("style");
+  style.textContent = `
+    input::-webkit-calendar-picker-indicator,
+    input::-webkit-list-button,
+    input::-webkit-search-cancel-button {
+      filter: none;
+    }
+    [data-theme='dark'] input::-webkit-calendar-picker-indicator,
+    [data-theme='dark'] input::-webkit-list-button,
+    [data-theme='dark'] input::-webkit-search-cancel-button {
+      filter: invert(1);
+      cursor: pointer;
+    }
+  `;
+  document.head.appendChild(style);
+
+  document.documentElement.setAttribute("data-theme", currentTheme);
+
+  if (welcomeUserEl) {
+    welcomeUserEl.textContent = `Welcome, ${localStorage.getItem("userName") || "Doctor"}`;
+  }
+
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      const theme = document.documentElement.getAttribute("data-theme");
+      const newTheme = theme === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      localStorage.setItem("theme", newTheme);
+    });
+  }
+};
 
 if (!token || localStorage.getItem("role") !== "doctor") {
   window.location.href = "index.html";
@@ -96,21 +138,63 @@ const renderProfile = (doctor) => {
   `;
 };
 
+/** Merges consecutive slots for a unified schedule view */
+const mergeSlots = (slots) => {
+  if (!slots.length) return [];
+
+  // Sort by date then startTime
+  const sorted = [...slots].sort((a, b) => {
+    if (a.date !== b.date) return new Date(a.date) - new Date(b.date);
+    return a.startTime.localeCompare(b.startTime);
+  });
+
+  const merged = [];
+  let current = { ...sorted[0] };
+
+  for (let i = 1; i < sorted.length; i++) {
+    const next = sorted[i];
+    // Merge if same date and consecutive times
+    if (current.date === next.date && current.endTime === next.startTime) {
+      current.endTime = next.endTime;
+    } else {
+      merged.push(current);
+      current = { ...next };
+    }
+  }
+  merged.push(current);
+  return merged;
+};
+
 const renderSlots = (slots) => {
-  if (!slots.length) {
+  const now = new Date();
+  // Filter out slots that have already ended
+  const visibleSlots = slots.filter((slot) => {
+    if (!slot.date || !slot.endTime) return true;
+    const [hours, minutes] = slot.endTime.split(":").map(Number);
+    const end = new Date(slot.date);
+    end.setHours(hours, minutes, 0, 0);
+    return end > now;
+  });
+
+  if (!visibleSlots.length) {
     slotsListEl.innerHTML =
       '<div class="col-12"><div class="alert alert-info">No slots found.</div></div>';
     return;
   }
 
-  slotsListEl.innerHTML = slots
+  slotsListEl.innerHTML = visibleSlots
     .map(
       (slot) => `
     <div class="col-md-6">
       <div class="card p-3 h-100 slot-card">
+        <div class="small text-muted mb-1">Schedule Block</div>
         <div><strong>Date:</strong> ${formatDate(slot.date)}</div>
         <div><strong>Time:</strong> ${escapeHtml(slot.startTime || "Not set")} - ${escapeHtml(slot.endTime || "Not set")}</div>
-        <div class="mt-2"><span class="badge ${slot.isAvailable ? "bg-success" : "bg-secondary"}">${slot.isAvailable ? "Available" : "Booked"}</span></div>
+        <button class="btn-primary mt-3 delete-slot-btn" 
+                style="background: var(--danger); padding: 0.4rem 0.8rem; font-size: 0.8rem;" 
+                data-slot-id="${slot._id}">
+          Remove Slot
+        </button>
       </div>
     </div>
   `,
@@ -119,31 +203,28 @@ const renderSlots = (slots) => {
 };
 
 const renderAppointments = (appointments) => {
-  const visibleAppointments = appointments.filter(
-    (appointment) => appointment.status !== "completed",
-  );
+  const categories = {
+    booked: appointments.filter((a) => a.status === "booked"),
+    completed: appointments.filter((a) => a.status === "completed"),
+    cancelled: appointments.filter((a) => a.status === "cancelled"),
+  };
 
-  if (!visibleAppointments.length) {
-    appointmentsListEl.innerHTML =
-      '<div class="col-12"><div class="alert alert-info">No appointments found.</div></div>';
-    return;
-  }
-
-  appointmentsListEl.innerHTML = visibleAppointments
-    .map((appointment) => {
-      const patient = appointment.patientId || {};
-      const slot = appointment.slotId || {};
-      const isBooked = appointment.status === "booked";
-      const actionButtons = isBooked
-        ? `
+  const renderGroup = (title, list, emptyMsg) => {
+    const cards = list
+      .map((appointment) => {
+        const patient = appointment.patientId || {};
+        const slot = appointment.slotId || {};
+        const isBooked = appointment.status === "booked";
+        const actionButtons = isBooked
+          ? `
         <div class="d-flex gap-2 mt-3">
           <button class="btn btn-success complete-appointment-btn" data-appointment-id="${appointment._id}">Mark Completed</button>
           <button class="btn btn-outline-danger cancel-appointment-btn" data-appointment-id="${appointment._id}">Cancel</button>
         </div>
       `
-        : "";
+          : "";
 
-      return `
+        return `
       <div class="col-md-6">
         <div class="card p-3 h-100 appointment-card-booked">
           <div><strong>Patient:</strong> ${escapeHtml(patient.patientName || "Patient")}</div>
@@ -156,15 +237,28 @@ const renderAppointments = (appointments) => {
         </div>
       </div>
     `;
-    })
-    .join("");
+      })
+      .join("");
+
+    return `
+      <div class="col-12 mt-4">
+        <h4 class="border-bottom pb-2">${title}</h4>
+      </div>
+      ${cards || `<div class="col-12"><div class="alert alert-light">${emptyMsg}</div></div>`}
+    `;
+  };
+
+  appointmentsListEl.innerHTML = `
+    <div class="row">
+      ${renderGroup("Booked Appointments", categories.booked, "No upcoming appointments.")}
+      ${renderGroup("Completed Appointments", categories.completed, "No completed appointments.")}
+      ${renderGroup("Cancelled Appointments", categories.cancelled, "No cancelled appointments.")}
+    </div>
+  `;
 };
 
 const loadDashboard = async () => {
   clearMessage();
-  profileEl.textContent = "Loading profile...";
-  slotsListEl.textContent = "Loading slots...";
-  appointmentsListEl.textContent = "Loading appointments...";
 
   try {
     const [profile, slots, appointments] = await Promise.all([
@@ -280,6 +374,38 @@ const cancelAppointment = async (appointmentId) => {
   }
 };
 
+const deleteSlot = (slotId) => {
+  slotIdToDelete = slotId;
+  deleteModal.classList.add("active");
+};
+
+const executeDelete = async () => {
+  if (!slotIdToDelete) return;
+
+  const slotId = slotIdToDelete;
+  hideDeleteModal();
+  clearMessage();
+  try {
+    await apiFetch(`/api/slots/${slotId}`, {
+      method: "DELETE",
+    });
+    showMessage("Slot removed successfully.", "success");
+    const [slots, appointments] = await Promise.all([
+      apiFetch("/api/doctors/me/slots"),
+      apiFetch("/api/doctors/me/appointments"),
+    ]);
+    renderSlots(slots);
+    renderAppointments(appointments);
+  } catch (err) {
+    showMessage(err.message || "Unable to remove slot. It might be booked.");
+  }
+};
+
+const hideDeleteModal = () => {
+  slotIdToDelete = null;
+  deleteModal.classList.remove("active");
+};
+
 logoutBtn.addEventListener("click", () => {
   localStorage.removeItem("token");
   localStorage.removeItem("role");
@@ -302,5 +428,16 @@ appointmentsListEl.addEventListener("click", (event) => {
   }
 });
 
+slotsListEl.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest(".delete-slot-btn");
+  if (deleteButton) {
+    deleteSlot(deleteButton.dataset.slotId);
+  }
+});
+
+confirmDeleteBtn.addEventListener("click", executeDelete);
+cancelDeleteBtn.addEventListener("click", hideDeleteModal);
+
+initTheme();
 setSlotFormDefaults();
 loadDashboard();
