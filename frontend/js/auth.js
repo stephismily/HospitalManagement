@@ -1,38 +1,47 @@
-const loginForm = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
-const showLogin = document.getElementById('showLogin');
-const showRegister = document.getElementById('showRegister');
-const loginSection = document.getElementById('loginSection');
-const registerSection = document.getElementById('registerSection');
-const authMessage = document.getElementById('authMessage');
-const API_BASE = window.location.protocol === 'file:' || window.location.port !== '3000'
-  ? 'http://localhost:3000'
-  : window.location.origin;
+/** Authentication Logic - Refactored for Professional UI */
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+const showLogin = document.getElementById("showLogin");
+const showRegister = document.getElementById("showRegister");
+const loginSection = document.getElementById("loginSection");
+const registerSection = document.getElementById("registerSection");
+const authMessage = document.getElementById("authMessage");
 
-const showSection = (section) => {
-  if (section === 'login') {
-    loginSection.classList.remove('d-none');
-    registerSection.classList.add('d-none');
-  } else {
-    loginSection.classList.add('d-none');
-    registerSection.classList.remove('d-none');
+const API_BASE =
+  window.location.protocol === "file:" || window.location.port !== "3000"
+    ? "http://localhost:3000"
+    : window.location.origin;
+
+/** Utilities */
+const parseJwt = (token) => {
+  try {
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch (e) {
+    return {};
   }
-  authMessage.innerHTML = '';
 };
 
-showLogin.addEventListener('click', () => showSection('login'));
-showRegister.addEventListener('click', () => showSection('register'));
+const displayMessage = (msg, isError = true) => {
+  const type = isError ? "danger" : "success";
+  authMessage.innerHTML = `<div class="alert alert-${type} fade show" role="alert">${msg}</div>`;
+};
 
-loginForm.addEventListener('submit', async (e) => {
+const showSection = (section) => {
+  loginSection.classList.toggle("d-none", section !== "login");
+  registerSection.classList.toggle("d-none", section !== "register");
+  authMessage.innerHTML = "";
+};
+
+loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
 
   try {
     const response = await fetch(`${API_BASE}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
 
     const data = await response.json();
@@ -41,65 +50,64 @@ loginForm.addEventListener('submit', async (e) => {
       const token = authData.token;
       const decoded = parseJwt(token);
       const role = authData.user?.role || decoded.role;
-      const firstLogin = Boolean(authData.firstLogin || authData.user?.firstLogin || decoded.firstLogin);
+      const firstLogin = Boolean(
+        authData.firstLogin || authData.user?.firstLogin || decoded.firstLogin,
+      );
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('role', role);
-      localStorage.setItem('firstLogin', String(firstLogin));
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", role);
+      localStorage.setItem("firstLogin", String(firstLogin));
 
-      if (role === 'admin') {
-        window.location.href = 'admin.html';
-      } else if (role === 'doctor') {
-        if (firstLogin) {
-          window.location.href = 'changePassword.html';
-        } else {
-          window.location.href = 'doctor.html';
-        }
-      } else {
-        window.location.href = 'patient.html';
-      }
+      redirectUser(role, firstLogin);
     } else {
-      authMessage.innerHTML = `<div class="alert alert-danger">${data.error || data.message || 'Login failed'}</div>`;
+      displayMessage(data.error || data.message || "Invalid credentials.");
     }
   } catch (error) {
-    authMessage.innerHTML = '<div class="alert alert-danger">Unable to reach the server. Make sure the backend is running on port 3000.</div>';
+    displayMessage("Server unreachable. Please ensure the backend is active.");
   }
 });
 
-registerForm.addEventListener('submit', async (e) => {
+const redirectUser = (role, firstLogin) => {
+  if (role === "admin") window.location.href = "admin.html";
+  else if (role === "doctor")
+    window.location.href = firstLogin ? "changePassword.html" : "doctor.html";
+  else window.location.href = "patient.html";
+};
+
+/** Registration Handler */
+registerForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const patientName = document.getElementById('patientName').value;
-  const contact = document.getElementById('contact').value;
-  const email = document.getElementById('registerEmail').value.trim();
-  const password = document.getElementById('registerPassword').value.trim();
-  const dob = document.getElementById('dob').value;
-  const address = document.getElementById('address').value;
+  const patientName = document.getElementById("patientName").value;
+  const contact = document.getElementById("contact").value;
+  const email = document.getElementById("registerEmail").value.trim();
+  const password = document.getElementById("registerPassword").value.trim();
+  const dob = document.getElementById("dob").value;
+  const address = document.getElementById("address").value;
 
   const payload = { patientName, contact, email, password, dob, address };
 
   try {
     const response = await fetch(`${API_BASE}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
     if (response.ok) {
-      authMessage.innerHTML = '<div class="alert alert-success">Registration successful. You can now log in.</div>';
+      displayMessage(
+        "Account created successfully. You may now log in.",
+        false,
+      );
       registerForm.reset();
+      setTimeout(() => showSection("login"), 2000);
     } else {
-      authMessage.innerHTML = `<div class="alert alert-danger">${data.error || 'Registration failed'}</div>`;
+      displayMessage(data.error || "Registration encountered an error.");
     }
   } catch (error) {
-    authMessage.innerHTML = '<div class="alert alert-danger">Unable to reach the server. Make sure the backend is running on port 3000.</div>';
+    displayMessage("Server connectivity issue.");
   }
 });
 
-function parseJwt(token) {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (e) {
-    return {};
-  }
-}
+showLogin.addEventListener("click", () => showSection("login"));
+showRegister.addEventListener("click", () => showSection("register"));
