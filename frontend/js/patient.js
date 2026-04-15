@@ -103,6 +103,26 @@ const formatDate = (date) => {
   return new Date(date).toLocaleDateString();
 };
 
+const calculateAge = (date) => {
+  if (!date) return "Not set";
+
+  const birthDate = new Date(date);
+  if (Number.isNaN(birthDate.getTime())) return "Not set";
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDifference = today.getMonth() - birthDate.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age -= 1;
+  }
+
+  return age >= 0 ? String(age) : "Not set";
+};
+
 const toMinutes = (time) => {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
@@ -172,6 +192,7 @@ const renderProfile = (patient) => {
     <div><strong>Email:</strong> ${escapeHtml(patient.email || "Not set")}</div>
     <div><strong>Contact:</strong> ${escapeHtml(patient.contact || "Not set")}</div>
     <div><strong>Date of Birth:</strong> ${escapeHtml(formatDate(patient.dob))}</div>
+    <div><strong>Age:</strong> ${escapeHtml(calculateAge(patient.dob))}</div>
     <div><strong>Address:</strong> ${escapeHtml(patient.address || "Not set")}</div>
   `;
 };
