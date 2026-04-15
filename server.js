@@ -10,12 +10,14 @@ const appointmentRoutes = require('./api/routes/appointmentRoutes');
 const adminRoutes = require('./api/routes/adminRoutes');
 const errorHandler = require('./api/middleware/errorHandler');
 const connectDB = require('./api/config/db');
+const { swaggerUi, specs } = require('./docs/swagger');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('frontend'));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 connectDB();
 
